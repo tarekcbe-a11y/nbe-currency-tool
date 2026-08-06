@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>حاسبة تحويل العملات</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0d0608; color: #f3f4f6; padding: 10px; display: flex; justify-content: center; align-items: center; min-height: 100vh; width: 100%; }
+        .converter-card { 
+            background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 50%, #141414 100%); 
+            border: 2px solid #fbbf24; 
+            border-radius: 14px; 
+            padding: 15px 18px; 
+            width: 100%; 
+            max-width: 440px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9), 0 0 15px rgba(251,191,36,0.25), inset 0 1px 1px rgba(255,255,255,0.1); 
+            margin: 0 auto; 
+        }
+        .header-branding { text-align: center; margin-bottom: 10px; border-bottom: 1px solid rgba(251,191,36,0.3); padding-bottom: 8px; }
+        .group-title { font-size: 1.05rem; font-weight: bold; color: #fbbf24; line-height: 1.4; }
+        h2 { text-align: center; color: #fbbf24; margin-bottom: 10px; font-size: 1.2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5); }
+        label { display: block; margin-bottom: 4px; color: #d1d5db; font-size: 0.9rem; font-weight: 600; }
+        input, select { padding: 8px 10px; margin-bottom: 10px; width: 100%; background: #121212; border: 1px solid #fbbf24; border-radius: 7px; color: #fff; font-size: 1rem; outline: none; transition: border 0.3s; box-sizing: border-box; }
+        input:focus, select:focus { border-color: #fbbf24; box-shadow: 0 0 6px rgba(251,191,36,0.5); }
+        .result-box { background: #121212; border: 2px dashed #fbbf24; border-radius: 8px; padding: 10px; text-align: center; margin: 10px 0; box-shadow: inset 0 1px 4px rgba(0,0,0,0.8); }
+        .result-label { display: block; color: #d1d5db; font-size: 0.9rem; margin-bottom: 3px; }
+        #result { font-size: 1.6rem; font-weight: bold; color: #fbbf24; }
+        .update-info { text-align: center; font-size: 0.78rem; color: #d1d5db; margin-bottom: 3px; }
+        .source-note { text-align: center; font-size: 0.72rem; color: #fbbf24; opacity: 0.85; margin-bottom: 10px; }
+        .source-note.fallback { color: #fca5a5; }
+        .refresh-btn { width: 100%; background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: #170509; border: none; padding: 10px; border-radius: 7px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: opacity 0.3s, transform 0.2s; box-shadow: 0 3px 8px rgba(0,0,0,0.4); }
+        .refresh-btn:hover { opacity: 0.95; transform: translateY(-1px); }
+        .refresh-btn:disabled { opacity: 0.6; cursor: wait; }
+        .footer-divider { border: 0; height: 1px; background: rgba(251,191,36,0.3); margin: 12px 0 8px 0; }
+        .footer-branding { text-align: center; font-size: 0.85rem; }
+        .footer-group-name { color: #fbbf24; font-weight: bold; margin-bottom: 2px; }
+        .footer-dev { color: #fbbf24; font-size: 0.8rem; font-weight: 500; }
+    </style>
+</head>
+<body>
+<div class="converter-card">
+    <div class="header-branding">
+        <div class="group-title">جروب عملاء البنوك المصرية 🛡️</div>
+    </div>
+
+    <h2>حاسبة تحويل العملات</h2>
+    
+    <label>المبلغ</label>
+    <input type="number" id="amount" value="1">
+    
+    <label>من عملة</label>
+    <select id="from"></select>
+    
+    <label>إلى عملة</label>
+    <select id="to"></select>
+    
+    <div class="result-box">
+        <span class="result-label">القيمة الناتجة:</span>
+        <div id="result">جارٍ التحميل...</div>
+    </div>
+
+    <div class="update-info" id="updateTime">جارٍ جلب الأسعار...</div>
+    <div class="source-note" id="sourceNote"></div>
+    <button class="refresh-btn" id="refreshBtn">تحديث الأسعار الآن 🔄</button>
+
+    <hr class="footer-divider">
+    <div class="footer-branding">
+        <div class="footer-group-name">جروب عملاء البنوك المصرية 🛡️</div>
+        <div class="footer-dev">Developed by Tarek Metwally</div>
+    </div>
+</div>
+
+<script>
+const currencies = [
+    { code: "EGP", name: "الجنيه المصري", flag: "🇪🇬" },
+    { code: "USD", name: "الدولار الأمريكي", flag: "🇺🇸" },
+    { code: "EUR", name: "اليورو الأوروبي", flag: "🇪🇺" },
+    { code: "GBP", name: "الجنيه الاسترليني", flag: "🇬🇧" },
+    { code: "SAR", name: "الريال السعودي", flag: "🇸🇦" },
+    { code: "AED", name: "الدولار الاماراتي", flag: "🇦🇪" },
+    { code: "KWD", name: "الدينار الكويتي", flag: "🇰🇼" },
+    { code: "QAR", name: "الريال القطري", flag: "🇶🇦" },
+    { code: "BHD", name: "الدينار البحريني", flag: "🇧🇭" },
+    { code: "OMR", name: "الريال العماني", flag: "🇴🇲" },
+    { code: "JOD", name: "الدينار الأردني", flag: "🇯🇴" },
+    { code: "CAD", name: "الدولار الكندي", flag: "🇨🇦" },
+    { code: "AUD", name: "الدولار الأسترالي", flag: "🇦🇺" },
+    { code: "CHF", name: "الفرنك السويسري", flag: "🇨🇭" },
+    { code: "JPY", name: "الين الياباني", flag: "🇯🇵" },
+    { code: "CNY", name: "اليوان الصيني", flag: "🇨🇳" }
+];
+const fromSel = document.getElementById('from');
+const toSel = document.getElementById('to');
+const updateTimeEl = document.getElementById('updateTime');
+const sourceNoteEl = document.getElementById('sourceNote');
+const refreshBtn = document.getElementById('refreshBtn');
+
+currencies.forEach(c => {
+  fromSel.innerHTML += `<option value="${c.code}">${c.flag} ${c.name} (${c.code})</option>`;
+  toSel.innerHTML += `<option value="${c.code}">${c.flag} ${c.name} (${c.code})</option>`;
+});
+fromSel.value = "USD";
+toSel.value = "EGP";
+const FALLBACK_DATE = "2026-08-04";
+let exchangeRates = {
+    EGP: 1.00, USD: 37.00, EUR: 40.50, GBP: 48.00,
+    SAR: 7.00, AED: 10.10, KWD: 120.00, QAR: 10.15,
+    BHD: 98.00, OMR: 96.00, JOD: 52.00, CAD: 27.00,
+    AUD: 24.00, CHF: 42.00, JPY: 0.25, CNY: 5.10
+};
+let usingFallback = true;
+
+function convert() {
+  const amount = parseFloat(document.getElementById('amount').value) || 0;
+  const from = fromSel.value;
+  const to = toSel.value;
+  const amountInEGP = amount * (exchangeRates[from] || 1);
+  const finalResult = amountInEGP / (exchangeRates[to] || 1);
+  const targetCurrencyObj = currencies.find(c => c.code === to);
+  const targetName = targetCurrencyObj ? targetCurrencyObj.name : to;
+  
+  document.getElementById('result').innerText = `${finalResult.toFixed(2)} ${targetName}`;
+}
+
+async function fetchLiveRates() {
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = "جارٍ التحديث...";
+    updateTimeEl.textContent = "جارٍ جلب الأسعار من الـ API...";
+    try {
+        const res = await fetch('https://open.er-api.com/v6/latest/EGP');
+        if (!res.ok) throw new Error('فشل الاتصال');
+        const data = await res.json();
+        if (data.result !== 'success' || !data.rates) throw new Error('بيانات غير صحيحة');
+
+        const newRates = { EGP: 1.00 };
+        currencies.forEach(c => {
+            if (c.code !== 'EGP' && data.rates[c.code]) {
+                newRates[c.code] = 1 / data.rates[c.code];
+            }
+        });
+        exchangeRates = { ...exchangeRates, ...newRates };
+        usingFallback = false;
+        const now = new Date();
+        const dateString = now.toLocaleDateString('ar-EG');
+        const timeString = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+        updateTimeEl.textContent = `آخر تحديث حي: ${dateString} - ${timeString}`;
+        sourceNoteEl.textContent = "المصدر: ربط مباشر مع API الأسعار";
+        sourceNoteEl.classList.remove('fallback');
+    } catch (err) {
+        usingFallback = true;
+        updateTimeEl.textContent = `تعذر الاتصال — الأسعار احتياطية بتاريخ ${FALLBACK_DATE}`;
+        sourceNoteEl.textContent = "⚠️ تأكد من اتصال الإنترنت وحاول تاني";
+        sourceNoteEl.classList.add('fallback');
+    } finally {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "تحديث الأسعار الآن 🔄";
+        convert();
+    }
+}
+document.getElementById('amount').addEventListener('input', convert);
+fromSel.addEventListener('change', convert);
+toSel.addEventListener('change', convert);
+refreshBtn.addEventListener('click', fetchLiveRates);
+
+document.addEventListener("DOMContentLoaded", () => {
+    fetchLiveRates();
+});
+</script>
+</body>
+</html>
